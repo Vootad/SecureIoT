@@ -1,10 +1,8 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI, Depends
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-
-from database import engine, Base
-# import models
+from database import engine, Base, get_db
 from models import User
 from security import verify_password
 
@@ -14,8 +12,8 @@ app = FastAPI()
 
 
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(min_length=1)
+    password: str = Field(min_length=1)
 
 
 
@@ -25,8 +23,7 @@ def health():
 
 
 @app.post("/auth/login")
-def login(request: LoginRequest):
-    db = Session(bind=engine)
+def login(request: LoginRequest, db: Session = Depends(get_db)):
 
     user = db.query(User).filter(
         User.username == request.username
@@ -46,7 +43,6 @@ def login(request: LoginRequest):
             "message": "Invalid username or password"
         }
 
-    db.close()
 
     return {
         "success": True,
