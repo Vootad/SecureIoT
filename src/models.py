@@ -10,3 +10,11 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     role = Column(String, nullable=False)
     created_at = Column(DateTime)
+
+class Lock(Base):
+    __tablename__ = "locks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lock_id = Column(String, unique=True, nullable=False, index=True)
+    password_hash = Column(String, nullable=False)
+    created_at = Column(DateTime)
