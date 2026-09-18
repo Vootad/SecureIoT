@@ -11,6 +11,7 @@ class User(Base):
     role = Column(String, nullable=False)
     created_at = Column(DateTime)
 
+
 class Lock(Base):
     __tablename__ = "locks"
 
