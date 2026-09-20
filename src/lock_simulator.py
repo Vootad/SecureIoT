@@ -4,20 +4,50 @@ import requests
 SERVER_URL = "http://127.0.0.1:8000"
 
 
+def check_server_connection():
+    """Check whether the FastAPI server is available."""
+
+    try:
+        response = requests.get(
+            f"{SERVER_URL}/health",
+            timeout=5
+        )
+
+        if response.status_code == 200:
+            return True
+
+        return False
+
+    except requests.RequestException:
+        return False
+
+
 def login(username, password):
     """Authenticate the user and return the access token."""
 
-    response = requests.post(
-        f"{SERVER_URL}/auth/login",
-        json={
-            "username": username,
-            "password": password
-        }
-    )
+    try:
+        response = requests.post(
+            f"{SERVER_URL}/auth/login",
+            json={
+                "username": username,
+                "password": password
+            },
+            # client wait for just 5 sec
+            timeout=5
+        )
+
+    except requests.RequestException:
+        print("Unable to connect to the server")
+        return None
 
     if response.status_code != 200:
         print("Login failed.")
-        print(response.json())
+
+        try:
+            print(response.json())
+        except (ValueError, KeyError):
+            print("Server returned an unexpected response")
+
         return None
 
     data = response.json()
@@ -30,16 +60,21 @@ def login(username, password):
 def unlock_lock(access_token, lock_id, lock_password):
     """Send an unlock request to the server."""
 
-    response = requests.post(
-        f"{SERVER_URL}/lock/unlock",
-        json={
-            "lock_id": lock_id,
-            "lock_password": lock_password
-        },
-        headers={
-            "Authorization": f"Bearer {access_token}"
-        }
-    )
+    try:
+        response = requests.post(
+            f"{SERVER_URL}/lock/unlock",
+            json={
+                "lock_id": lock_id,
+                "lock_password": lock_password
+            },
+            headers={
+                "Authorization": f"Bearer {access_token}"
+            },
+            timeout=5
+        )
+
+    except requests.RequestException:
+        print("Unable to connect to the server")
 
     return response
 
@@ -49,6 +84,14 @@ def main():
     print("      SMART LOCK")
     print("=====================")
 
+    print("\nChecking server connection...")
+
+    if not check_server_connection():
+        print("Unable to connect to the server")
+        print("Please make sure the server is running")
+        return
+
+    print("Server connection successful")
     username = input("Username: ")
     password = input("Password: ")
 
@@ -72,6 +115,9 @@ def main():
         lock_password
     )
 
+    if response is None:
+        return
+
     if response.status_code == 200:
         data = response.json()
 
@@ -80,7 +126,11 @@ def main():
 
     else:
         print("\nAccess Denied")
-        print(response.json()["detail"])
+
+        try:
+            print(response.json()["detail"])
+        except (ValueError, KeyError):
+            print("Server returned an unexpected response.")
 
 
 if __name__ == "__main__":
