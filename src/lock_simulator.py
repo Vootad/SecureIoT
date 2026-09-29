@@ -1,7 +1,11 @@
 import requests
+from pathlib import Path
 
 
-SERVER_URL = "http://127.0.0.1:8000"
+SERVER_URL = "https://127.0.0.1:8000"
+
+# Path to the server certificate used to verify the TLS connection.
+CERT_PATH = Path(__file__).resolve().parent.parent / "certs" / "server.crt"
 
 
 def check_server_connection():
@@ -10,6 +14,7 @@ def check_server_connection():
     try:
         response = requests.get(
             f"{SERVER_URL}/health",
+            verify=CERT_PATH,
             timeout=5
         )
 
@@ -32,6 +37,7 @@ def login(username, password):
                 "username": username,
                 "password": password
             },
+            verify=CERT_PATH,
             # client wait for just 5 sec
             timeout=5
         )
@@ -70,11 +76,14 @@ def unlock_lock(access_token, lock_id, lock_password):
             headers={
                 "Authorization": f"Bearer {access_token}"
             },
+            # Verify the server certificate during the TLS connection.
+            verify=CERT_PATH,
             timeout=5
         )
-
     except requests.RequestException:
         print("Unable to connect to the server")
+        return None
+
 
     return response
 
