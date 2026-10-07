@@ -1,5 +1,7 @@
 import requests
 from pathlib import Path
+import time
+import secrets
 
 
 SERVER_URL = "https://127.0.0.1:8000"
@@ -67,11 +69,19 @@ def unlock_lock(access_token, lock_id, lock_password):
     """Send an unlock request to the server."""
 
     try:
+        # create timestamp
+        timestamp = int(time.time())
+
+        # generate a uniqie random value
+        nonce = secrets.token_urlsafe(16)
+
         response = requests.post(
             f"{SERVER_URL}/lock/unlock",
             json={
                 "lock_id": lock_id,
-                "lock_password": lock_password
+                "lock_password": lock_password,
+                "timestamp": timestamp,
+                "nonce": nonce
             },
             headers={
                 "Authorization": f"Bearer {access_token}"
@@ -83,7 +93,6 @@ def unlock_lock(access_token, lock_id, lock_password):
     except requests.RequestException:
         print("Unable to connect to the server")
         return None
-
 
     return response
 

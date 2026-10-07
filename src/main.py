@@ -7,10 +7,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from database import engine, Base, get_db
-from models import User, Lock
+from models import User, Lock, UsedNonce
 from security import verify_password
 from auth_token import create_access_token, decode_access_token
 
+import time
+
+# SQLAlchemy convert python models to db tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -63,6 +66,12 @@ class UnlockRequest(BaseModel):
     lock_id: str = Field(min_length=1)
     lock_password: str = Field(min_length=1)
 
+    # Time when the request was created by the Smart Lock
+    timestamp: int
+
+    # Unique value used to prevent replay attacks.
+    nonce: str = Field(min_length=16)
+
 
 @app.get("/health")
 def health():
@@ -107,6 +116,28 @@ def unlock(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+
+    # Check whether the request is recent enough(timestamp).
+    current_time = int(time.time())
+
+    if abs(current_time - request.timestamp) > 30:
+        raise HTTPException(
+            status_code=400,
+            detail="Request expired"
+        )
+
+    # Check whether this nonce has already been used(nonce).
+    used_nonce = db.query(UsedNonce).filter(
+        UsedNonce.nonce == request.nonce
+    ).first()
+
+    if used_nonce is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Replay attack detected"
+        )
+
+
     lock = db.query(Lock).filter(
         Lock.lock_id == request.lock_id
     ).first()
@@ -125,6 +156,14 @@ def unlock(
             status_code=401,
             detail="Invalid lock credentials"
         )
+
+    # Store the nonce so the same request cannot be used again.
+    new_nonce = UsedNonce(
+        nonce=request.nonce
+    )
+
+    db.add(new_nonce)
+    db.commit()
 
     return {
         "success": True,
