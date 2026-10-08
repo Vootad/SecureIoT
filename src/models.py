@@ -28,3 +28,14 @@ class UsedNonce(Base):
     id = Column(Integer, primary_key=True, index=True)
     nonce = Column(String, unique=True, nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class UnlockAttempt(Base):
+    __tablename__ = "unlock_attempts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    # Username of the authenticated user
+    username = Column(String, nullable=False, index=True)
+    lock_id = Column(String, nullable=False, index=True)
+    failed_attempts = Column(Integer, default=0)
+    blocked_until = Column(DateTime, nullable=True)

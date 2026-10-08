@@ -7,11 +7,12 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from database import engine, Base, get_db
-from models import User, Lock, UsedNonce
+from models import User, Lock, UsedNonce, UnlockAttempt
 from security import verify_password
 from auth_token import create_access_token, decode_access_token
 
 import time
+from datetime import datetime, timedelta
 
 # SQLAlchemy convert python models to db tables
 Base.metadata.create_all(bind=engine)
@@ -97,7 +98,6 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             detail="Invalid username or password"
         )
 
-
     # Create an access token for the authenticated user
     access_token = create_access_token(user.username, user.role)
     return {
@@ -108,6 +108,10 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         "access_token": access_token,
         "token_type": "bearer"
     }
+
+
+MAX_FAILED_ATTEMPTS = 5
+BLOCK_DURATION = 60
 
 
 @app.post("/lock/unlock")
@@ -137,7 +141,7 @@ def unlock(
             detail="Replay attack detected"
         )
 
-
+    # Find lock
     lock = db.query(Lock).filter(
         Lock.lock_id == request.lock_id
     ).first()
@@ -148,19 +152,75 @@ def unlock(
             detail="Invalid lock credentials"
         )
 
+    # Find the rate-limit record for this user and lock.
+    attempt_record = db.query(UnlockAttempt).filter(
+        UnlockAttempt.username == current_user["username"],
+        UnlockAttempt.lock_id == request.lock_id
+    ).first()
+
+    # Check whether this user is currently blocked.
+    if attempt_record and attempt_record.blocked_until is not None:
+
+        if datetime.utcnow() < attempt_record.blocked_until:
+            raise HTTPException(
+                status_code=429,
+                detail="Too many failed attempts. Try again later."
+            )
+
+        # The block has expired, so reset the failed attempts.
+        attempt_record.failed_attempts = 0
+        attempt_record.blocked_until = None
+
     if not verify_password(
         request.lock_password,
         lock.password_hash
     ):
+        # Create a new rate-limit record if this is
+        # the first failed attempt for this user and lock.
+        if attempt_record is None:
+            attempt_record = UnlockAttempt(
+                username=current_user["username"],
+                lock_id=request.lock_id,
+                failed_attempts=1
+            )
+
+            db.add(attempt_record)
+
+        else:
+            # Increase the number of consecutive failed attempts.
+            attempt_record.failed_attempts += 1
+
+        # Block the user after reaching the maximum
+        # number of failed attempts.
+        if attempt_record.failed_attempts >= MAX_FAILED_ATTEMPTS:
+            attempt_record.blocked_until = (
+                datetime.utcnow()
+                + timedelta(seconds=BLOCK_DURATION)
+            )
+
+        # Save the failed attempt before returning the error.
+        db.commit()
+
+        # If the limit was reached, return 429.
+        if attempt_record.failed_attempts >= MAX_FAILED_ATTEMPTS:
+            raise HTTPException(
+                status_code=429,
+                detail="Too many failed attempts. Try again later."
+            )
+
+        # Normal invalid-password response.
         raise HTTPException(
             status_code=401,
             detail="Invalid lock credentials"
         )
 
+    # Reset failed attempts after a successful unlock.
+    if attempt_record is not None:
+        attempt_record.failed_attempts = 0
+        attempt_record.blocked_until = None
+
     # Store the nonce so the same request cannot be used again.
-    new_nonce = UsedNonce(
-        nonce=request.nonce
-    )
+    new_nonce = UsedNonce(nonce=request.nonce)
 
     db.add(new_nonce)
     db.commit()
