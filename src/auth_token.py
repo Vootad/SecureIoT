@@ -44,11 +44,11 @@ def decode_access_token(token: str):
         if username is None or role is None:
             return None
 
-        return{
+        return {
             "username": username,
             "role": role
         }
 
-    #when token is invalid
+    # when token is invalid
     except JWTError:
         return None

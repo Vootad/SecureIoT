@@ -39,3 +39,21 @@ class UnlockAttempt(Base):
     lock_id = Column(String, nullable=False, index=True)
     failed_attempts = Column(Integer, default=0)
     blocked_until = Column(DateTime, nullable=True)
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    # Time when the security event accurred
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    # Username associated with the event
+    username = Column(String, nullable=True, index=True)
+    # Cient IP address
+    ip_address = Column(String, nullable=True)
+    # Type of security event e.g. login or unlock
+    event_type = Column(String, nullable=False, index=True)
+    # Outcome of the event, e.g. success or failure
+    result = Column(String, nullable=False)
+    # Reason for the outcome, without sensitive information
+    reason = Column(String, nullable=True)

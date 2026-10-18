@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from database import engine, Base, get_db
-from models import User, Lock, UsedNonce, UnlockAttempt
+from models import User, Lock, UsedNonce, UnlockAttempt, AuditLog
 from security import verify_password
 from auth_token import create_access_token, decode_access_token
 
@@ -58,6 +58,34 @@ def get_current_user(
     return user
 
 
+def write_audit_log(
+    db: Session,
+    request: Request,
+    event_type: str,
+    result: str,
+    username: str = None,
+    reason: str = None
+):
+    """Save a security event without recording secrets."""
+
+    log_entry = AuditLog(
+        username=username,
+        ip_address=(
+            request.client.host
+            if request.client is not None
+            else None
+        ),
+        event_type=event_type,
+        result=result,
+        reason=reason
+    )
+
+    db.add(log_entry)
+
+    # Persist the audit event immediately.
+    db.commit()
+
+
 class LoginRequest(BaseModel):
     username: str = Field(min_length=1)
     password: str = Field(min_length=1)
@@ -80,23 +108,56 @@ def health():
 
 
 @app.post("/auth/login")
-def login(request: LoginRequest, db: Session = Depends(get_db)):
+def login(
+    request: LoginRequest,
+    http_request: Request,
+    db: Session = Depends(get_db)
+):
 
     user = db.query(User).filter(
         User.username == request.username
     ).first()
 
+    # Reject an unknown username and record the failed login.
     if user is None:
+        write_audit_log(
+            db=db,
+            request=http_request,
+            event_type="login",
+            result="failure",
+            username=request.username,
+            reason="user_not_found"
+        )
+
         raise HTTPException(
             status_code=401,
             detail="Invalid username or password"
         )
 
     if not verify_password(request.password, user.password_hash):
+        write_audit_log(
+            db=db,
+            request=http_request,
+            event_type="login",
+            result="failure",
+            username=user.username,
+            reason="invalid_password"
+        )
+
         raise HTTPException(
             status_code=401,
             detail="Invalid username or password"
         )
+
+    # Record successful authentication.
+    write_audit_log(
+        db=db,
+        request=http_request,
+        event_type="login",
+        result="success",
+        username=user.username,
+        reason="authentication_successful"
+    )
 
     # Create an access token for the authenticated user
     access_token = create_access_token(user.username, user.role)
@@ -117,6 +178,7 @@ BLOCK_DURATION = 60
 @app.post("/lock/unlock")
 def unlock(
     request: UnlockRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
@@ -125,6 +187,15 @@ def unlock(
     current_time = int(time.time())
 
     if abs(current_time - request.timestamp) > 30:
+        write_audit_log(
+            db=db,
+            request=http_request,
+            event_type="unlock",
+            result="denied",
+            username=current_user["username"],
+            reason="request_expired"
+        )
+
         raise HTTPException(
             status_code=400,
             detail="Request expired"
@@ -136,6 +207,15 @@ def unlock(
     ).first()
 
     if used_nonce is not None:
+        write_audit_log(
+            db=db,
+            request=http_request,
+            event_type="replay_attempt",
+            result="denied",
+            username=current_user["username"],
+            reason="duplicate_nonce"
+        )
+
         raise HTTPException(
             status_code=409,
             detail="Replay attack detected"
@@ -147,6 +227,15 @@ def unlock(
     ).first()
 
     if lock is None:
+        write_audit_log(
+            db=db,
+            request=http_request,
+            event_type="unlock",
+            result="denied",
+            username=current_user["username"],
+            reason="lock_not_found"
+        )
+
         raise HTTPException(
             status_code=401,
             detail="Invalid lock credentials"
@@ -162,6 +251,15 @@ def unlock(
     if attempt_record and attempt_record.blocked_until is not None:
 
         if datetime.utcnow() < attempt_record.blocked_until:
+            write_audit_log(
+                db=db,
+                request=http_request,
+                event_type="rate_limit",
+                result="blocked",
+                username=current_user["username"],
+                reason="account_lock_pair_temporarily_blocked"
+            )
+
             raise HTTPException(
                 status_code=429,
                 detail="Too many failed attempts. Try again later."
@@ -201,8 +299,26 @@ def unlock(
         # Save the failed attempt before returning the error.
         db.commit()
 
+        write_audit_log(
+            db=db,
+            request=http_request,
+            event_type="unlock",
+            result="denied",
+            username=current_user["username"],
+            reason="invalid_lock_password"
+        )
+
         # If the limit was reached, return 429.
         if attempt_record.failed_attempts >= MAX_FAILED_ATTEMPTS:
+            write_audit_log(
+                db=db,
+                request=http_request,
+                event_type="rate_limit",
+                result="blocked",
+                username=current_user["username"],
+                reason="maximum_failed_attempts_reached"
+            )
+
             raise HTTPException(
                 status_code=429,
                 detail="Too many failed attempts. Try again later."
@@ -224,6 +340,15 @@ def unlock(
 
     db.add(new_nonce)
     db.commit()
+
+    write_audit_log(
+        db=db,
+        request=http_request,
+        event_type="unlock",
+        result="success",
+        username=current_user["username"],
+        reason="valid_lock_credentials"
+    )
 
     return {
         "success": True,

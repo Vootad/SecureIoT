@@ -92,7 +92,7 @@ def main():
             "username": "bob",
             "password": "bob12345"
         },
-        verify=CERT_PATH   
+        verify=CERT_PATH
     )
 
     print(f"Bob login: HTTP {bob_login_response.status_code}")
@@ -122,6 +122,7 @@ def main():
             f"HTTP {bob_unlock_response.status_code}"
         )
         print(bob_unlock_response.text)
+
 
 if __name__ == "__main__":
     main()
