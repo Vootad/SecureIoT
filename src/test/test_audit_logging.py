@@ -3,10 +3,15 @@ import time
 import secrets
 from database import SessionLocal
 from models import AuditLog, UnlockAttempt
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+CERT_PATH = PROJECT_ROOT / "certs" / "server.crt"
+
 
 # Server configuration
 SERVER_URL = "https://127.0.0.1:8000"
-CERT_PATH = "../certs/server.crt"
+# CERT_PATH = "../certs/server.crt"
 
 # Test credentials
 USERNAME = "alice"

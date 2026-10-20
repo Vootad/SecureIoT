@@ -2,11 +2,16 @@ import time
 import secrets
 import requests
 
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+CERT_PATH = PROJECT_ROOT / "certs" / "server.crt"
+
 # Server address
 SERVER_URL = "https://127.0.0.1:8000"
 
 # Server certificate
-CERT_PATH = "../../certs/server.crt"
+# CERT_PATH = "../../certs/server.crt"
 
 # Login information
 USERNAME = "alice"
