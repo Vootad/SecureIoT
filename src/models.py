@@ -41,6 +41,16 @@ class UnlockAttempt(Base):
     blocked_until = Column(DateTime, nullable=True)
 
 
+class LoginAttempt(Base):
+    __tablename__ = "login_attempts"
+
+    username = Column(String, nullable=False, index=True)
+    id = Column(Integer, primary_key=True, index=True)
+    ip = Column(String, nullable=False, index=True)
+    failed_attempts = Column(Integer, default=0)
+    blocked_until = Column(DateTime, nullable=True)
+
+
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
