@@ -6,3 +6,4 @@ __pycache__/
 database.db
 certs/
 wrong_certs/
+_offline_packages/
