@@ -64,6 +64,23 @@ The configured threshold is five failed attempts, with a blocking period of 60 s
 
 These results confirm that the tested rate-limiting mechanism enforced the configured threshold and did not block Bob because Alice's account-lock pair was restricted.
 
+### 4.1 Login Rate Limiting Verification
+
+Login rate limiting was implemented to restrict repeated failed authentication attempts. The restriction is tracked using the username and client IP address. The configured threshold is five failed attempts, and the blocking period is 60 seconds.
+
+#### Test Procedure
+
+1. Submit login requests using an incorrect password for an existing test account.
+2. Observe the HTTP responses for the failed attempts.
+3. Attempt to log in again while the restriction is active, using the correct password.
+4. Examine the response returned by the server.
+
+#### Results
+
+- The first five incorrect login attempts returned HTTP 401 Unauthorized.
+- A subsequent login attempt was rejected with HTTP 429 Too Many Requests while the restriction was active, even when the correct password was provided.
+- The test completed successfully, confirming that the implemented login rate-limiting behavior matched the expected results in this test scenario.
+
 ## 5. Security Audit Logging Verification
 
 The audit logging mechanism was tested to verify that selected security events were recorded in the SQLite database with the expected event types, results, and reasons.
@@ -115,7 +132,8 @@ These results confirm the expected behavior of HTTPS communication and HTTP reje
 |---|---|
 | Password hashing and verification | Passed |
 | Replay protection | Passed |
-| Rate limiting | Passed |
+| Unlock rate limiting | Passed |
+| Login rate limiting | Passed |
 | Failed login audit logging | Passed |
 | Successful login audit logging | Passed |
 | Invalid lock password audit logging | Passed |
@@ -135,6 +153,7 @@ The following limitations should be considered:
 - The tests do not cover every possible authentication, authorization, or input-validation failure.
 - Replay protection was verified for the tested repeated-request scenario; broader concurrency and edge-case testing has not been established by these results.
 - Rate limiting was verified for the tested account-lock pair and threshold, but its behavior under concurrent requests and distributed deployments has not been assessed.
+Login rate limiting was verified for the tested username and client IP address. Expiration of the blocking period, counter reset after successful authentication, and behavior under concurrent requests have not been fully assessed.
 - TLS testing confirmed certificate verification and rejection of plain HTTP requests, but did not comprehensively assess the TLS configuration.
 - Audit logging was verified for selected events. Log integrity, access control, retention, and resistance to tampering require separate assessment.
 - The system has been evaluated in a local development environment and has not undergone a comprehensive penetration test.
@@ -143,7 +162,7 @@ The following limitations should be considered:
 
 Week 7 verified the expected behavior of the main security controls implemented in the SecureIoT access control system.
 
-The executed tests confirmed password verification, replay rejection, rate limiting, selected security audit events, and HTTPS communication in the local development environment.
+The executed tests confirmed password verification, replay rejection, unlock rate limiting, login rate limiting, selected security audit events, and HTTPS communication in the local development environment.
 
 Together with the implementation and documentation completed in previous weeks, these results provide evidence of the project's core security functionality.
 
