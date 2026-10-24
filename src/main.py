@@ -1,15 +1,17 @@
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from database import engine, Base, get_db
-from models import User, Lock, UsedNonce, UnlockAttempt, AuditLog, LoginAttempt
+from models import User, Lock, UsedNonce, UnlockAttempt, LoginAttempt
 from security import verify_password
-from auth_token import create_access_token, decode_access_token
+from auth_token import create_access_token
+from schemas import LoginRequest, UnlockRequest
+from services.audit import write_audit_log
+from dependencies import get_current_user
+
 
 import time
 from datetime import datetime, timedelta
@@ -18,8 +20,6 @@ from datetime import datetime, timedelta
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-security = HTTPBearer()
-
 
 # Exception handler
 @app.exception_handler(RequestValidationError)
@@ -36,70 +36,6 @@ async def validation_exception_handler(
             "details": exc.errors()
         }
     )
-
-
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    # Extract the token from the Authorization header
-    token = credentials.credentials
-
-    # Decode and validate the token
-    user = decode_access_token(token)
-
-    # Reject the request if the token is invalid
-    if user is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token"
-        )
-
-    # Return authenticated user information
-    return user
-
-
-def write_audit_log(
-    db: Session,
-    request: Request,
-    event_type: str,
-    result: str,
-    username: str = None,
-    reason: str = None
-):
-    """Save a security event without recording secrets."""
-
-    log_entry = AuditLog(
-        username=username,
-        ip_address=(
-            request.client.host
-            if request.client is not None
-            else None
-        ),
-        event_type=event_type,
-        result=result,
-        reason=reason
-    )
-
-    db.add(log_entry)
-
-    # Persist the audit event immediately.
-    db.commit()
-
-
-class LoginRequest(BaseModel):
-    username: str = Field(min_length=1)
-    password: str = Field(min_length=1)
-
-
-class UnlockRequest(BaseModel):
-    lock_id: str = Field(min_length=1)
-    lock_password: str = Field(min_length=1)
-
-    # Time when the request was created by the Smart Lock
-    timestamp: int
-
-    # Unique value used to prevent replay attacks.
-    nonce: str = Field(min_length=16)
 
 
 @app.get("/health")
@@ -172,7 +108,6 @@ def login(
 
         db.commit()
 
-
         write_audit_log(
             db=db,
             request=http_request,
@@ -209,7 +144,6 @@ def login(
             )
 
         db.commit()
-
 
         write_audit_log(
             db=db,
