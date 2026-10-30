@@ -72,7 +72,7 @@ def unlock_lock(access_token, lock_id, lock_password):
         # create timestamp
         timestamp = int(time.time())
 
-        # generate a uniqie random value
+        # generate a unique random value
         nonce = secrets.token_urlsafe(16)
 
         response = requests.post(
