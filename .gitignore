@@ -1,9 +1,38 @@
+# Python virtual environments
 venv/
+.venv/
+
+# Python cache files
 __pycache__/
+*.py[cod]
+
+# Test and coverage files
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE and editor settings
 .vscode/
-.python
-*.pyc
-database.db
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# TLS certificates and private keys
 certs/
 wrong_certs/
+*.key
+*.pem
+*.crt
+
+# Offline dependencies
 _offline_packages/
+
+# Python-specific local files
+.python
