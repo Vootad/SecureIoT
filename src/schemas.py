@@ -1,5 +1,6 @@
 
 from pydantic import BaseModel, Field
+from datetime import datetime
 
 
 class LoginRequest(BaseModel):
@@ -18,3 +19,23 @@ class UnlockRequest(BaseModel):
 
     # Unique value used to prevent replay attacks.
     nonce: str = Field(min_length=16)
+
+
+class AdminUserCreate(BaseModel):
+    # Information required to create a regular user.
+    username: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=1)
+
+
+class AdminUserResponse(BaseModel):
+    # Public user information returned by admin APIs.
+    id: int
+    username: str
+    role: str
+    is_active: bool
+    created_at: datetime | None = None
+
+
+class UserStatusUpdate(BaseModel):
+    # New activation status for the user.
+    is_active: bool

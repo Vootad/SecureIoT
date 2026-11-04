@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from database import engine, Base
 from routers.auth import router as auth_router
 from routers.lock import router as lock_router
+from routers.admin_users import router as admin_users_router
 
 # SQLAlchemy convert python models to db tables
 Base.metadata.create_all(bind=engine)
@@ -12,6 +13,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 app.include_router(auth_router)
 app.include_router(lock_router)
+app.include_router(admin_users_router)
 
 
 # Exception handler

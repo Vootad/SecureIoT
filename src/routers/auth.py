@@ -26,6 +26,22 @@ def login(
         User.username == request.username
     ).first()
 
+    # Reject login attempts from inactive users.
+    if user is not None and not user.is_active:
+        write_audit_log(
+            db=db,
+            request=http_request,
+            event_type="login",
+            result="failure",
+            username=user.username,
+            reason="user_inactive"
+        )
+
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid username or password"
+        )
+
     # Find the rate-limit record for this username and IP.
     client_ip = http_request.client.host
 
