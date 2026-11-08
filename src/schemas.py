@@ -39,3 +39,30 @@ class AdminUserResponse(BaseModel):
 class UserStatusUpdate(BaseModel):
     # New activation status for the user.
     is_active: bool
+
+
+class AdminLockCreate(BaseModel):
+    # Require a lock identifier and a password.
+    lock_id: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=1)
+
+
+class AdminLockResponse(BaseModel):
+    # Return lock information without exposing its password hash.
+    id: int
+    lock_id: str
+    is_active: bool
+    created_at: datetime | None = None
+
+
+class LockStatusUpdate(BaseModel):
+    # Define the new active status of the lock.
+    is_active: bool
+
+
+class UserLockPermissionResponse(BaseModel):
+    # Information about a user's permission to access a lock.
+    id: int
+    user_id: int
+    lock_id: int
+    created_at: datetime

@@ -6,6 +6,8 @@ from database import engine, Base
 from routers.auth import router as auth_router
 from routers.lock import router as lock_router
 from routers.admin_users import router as admin_users_router
+from routers.admin_locks import router as admin_locks_router
+from routers.admin_permissions import router as admin_permissions_router
 
 # SQLAlchemy convert python models to db tables
 Base.metadata.create_all(bind=engine)
@@ -14,6 +16,8 @@ app = FastAPI()
 app.include_router(auth_router)
 app.include_router(lock_router)
 app.include_router(admin_users_router)
+app.include_router(admin_locks_router)
+app.include_router(admin_permissions_router)
 
 
 # Exception handler

@@ -7,10 +7,15 @@ from sqlalchemy.orm import Session
 from config import MAX_FAILED_ATTEMPTS, BLOCK_DURATION
 from database import get_db
 from dependencies import get_current_user
-from models import Lock, UsedNonce, UnlockAttempt
 from schemas import UnlockRequest
 from security import verify_password
 from services.audit import write_audit_log
+from models import (
+    Lock,
+    UsedNonce,
+    UnlockAttempt,
+    UserLockPermission
+)
 
 
 # Create a separate router for Smart Lock operations.
@@ -42,7 +47,7 @@ def unlock(
     request: UnlockRequest,
     http_request: Request,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     # Check whether the request timestamp is within the allowed 30-second window.
     current_time = int(time.time())
@@ -53,7 +58,7 @@ def unlock(
             request=http_request,
             event_type="unlock",
             result="denied",
-            username=current_user["username"],
+            username=current_user.username,
             reason="request_expired"
         )
 
@@ -76,7 +81,7 @@ def unlock(
             request=http_request,
             event_type="replay_attempt",
             result="denied",
-            username=current_user["username"],
+            username=current_user.username,
             reason="duplicate_nonce"
         )
 
@@ -96,7 +101,7 @@ def unlock(
             request=http_request,
             event_type="unlock",
             result="denied",
-            username=current_user["username"],
+            username=current_user.username,
             reason="lock_not_found"
         )
 
@@ -105,9 +110,48 @@ def unlock(
             detail="Invalid lock credentials"
         )
 
+    # Reject unlock requests for inactive locks.
+    if not lock.is_active:
+        write_audit_log(
+            db=db,
+            request=http_request,
+            event_type="unlock",
+            result="denied",
+            username=current_user.username,
+            reason="lock_inactive"
+        )
+
+        raise HTTPException(
+            status_code=423,
+            detail="Lock is currently inactive"
+        )
+
+    # Check whether the current user has permission to access this lock.
+    permission = db.query(UserLockPermission).filter(
+        UserLockPermission.user_id == current_user.id,
+        UserLockPermission.lock_id == lock.id
+    ).first()
+
+    if permission is None:
+
+        # Record the unauthorized access attempt.
+        write_audit_log(
+            db=db,
+            request=http_request,
+            event_type="access_control",
+            result="denied",
+            username=current_user.username,
+            reason="permission_denied"
+        )
+
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to access this lock"
+        )
+
     # Find the failed-attempt record for this user and lock.
     attempt_record = db.query(UnlockAttempt).filter(
-        UnlockAttempt.username == current_user["username"],
+        UnlockAttempt.username == current_user.username,
         UnlockAttempt.lock_id == request.lock_id
     ).first()
 
@@ -119,7 +163,7 @@ def unlock(
                 request=http_request,
                 event_type="rate_limit",
                 result="blocked",
-                username=current_user["username"],
+                username=current_user.username,
                 reason="account_lock_pair_temporarily_blocked"
             )
 
@@ -140,7 +184,7 @@ def unlock(
         # Create a record for the first failed attempt.
         if attempt_record is None:
             attempt_record = UnlockAttempt(
-                username=current_user["username"],
+                username=current_user.username,
                 lock_id=request.lock_id,
                 failed_attempts=1
             )
@@ -165,7 +209,7 @@ def unlock(
             request=http_request,
             event_type="unlock",
             result="denied",
-            username=current_user["username"],
+            username=current_user.username,
             reason="invalid_lock_password"
         )
 
@@ -176,7 +220,7 @@ def unlock(
                 request=http_request,
                 event_type="rate_limit",
                 result="blocked",
-                username=current_user["username"],
+                username=current_user.username,
                 reason="maximum_failed_attempts_reached"
             )
 
@@ -207,7 +251,7 @@ def unlock(
         request=http_request,
         event_type="unlock",
         result="success",
-        username=current_user["username"],
+        username=current_user.username,
         reason="valid_lock_credentials"
     )
 
@@ -217,5 +261,5 @@ def unlock(
         "access": "granted",
         "message": "Door unlocked",
         "lock_id": lock.lock_id,
-        "username": current_user["username"]
+        "username": current_user.username
     }
