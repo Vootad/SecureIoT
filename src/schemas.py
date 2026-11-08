@@ -66,3 +66,16 @@ class UserLockPermissionResponse(BaseModel):
     user_id: int
     lock_id: int
     created_at: datetime
+
+
+class AdminAuditLogResponse(BaseModel):
+    # Security event information visible to administrators.
+    id: int
+    timestamp: datetime
+    username: str | None = None
+    ip_address: str | None = None
+    event_type: str
+    result: str
+    reason: str | None = None
+    previous_hash: str | None = None
+    current_hash: str | None = None
