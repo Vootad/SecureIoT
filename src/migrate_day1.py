@@ -42,36 +42,6 @@ def run_migration():
         connection.execute("PRAGMA foreign_keys=ON")
         cursor = connection.cursor()
 
-        # Check the audit log table before migration.
-        audit_columns = get_columns(cursor, "audit_logs")
-
-        audit_count = cursor.execute(
-            "SELECT COUNT(*) FROM audit_logs"
-        ).fetchone()[0]
-
-        if audit_count > 0:
-            required_hash_columns = {
-                "previous_hash",
-                "current_hash"
-            }
-
-            if not required_hash_columns.issubset(audit_columns):
-                raise RuntimeError(
-                    "Audit logs are not empty and hash columns do not exist."
-                )
-
-            incomplete_logs = cursor.execute("""
-                SELECT COUNT(*)
-                FROM audit_logs
-                WHERE previous_hash IS NULL
-                   OR current_hash IS NULL
-            """).fetchone()[0]
-
-            if incomplete_logs > 0:
-                raise RuntimeError(
-                    "Some audit logs do not have complete hashes."
-                )
-
         # Start a transaction.
         connection.execute("BEGIN IMMEDIATE")
 
@@ -134,23 +104,6 @@ def run_migration():
         """)
 
         print("Created user_lock_permissions table and indexes")
-
-        # Add hash columns to audit_logs.
-        audit_columns = get_columns(cursor, "audit_logs")
-
-        if "previous_hash" not in audit_columns:
-            cursor.execute("""
-                ALTER TABLE audit_logs
-                ADD COLUMN previous_hash VARCHAR(64)
-            """)
-            print("Added audit_logs.previous_hash")
-
-        if "current_hash" not in audit_columns:
-            cursor.execute("""
-                ALTER TABLE audit_logs
-                ADD COLUMN current_hash VARCHAR(64)
-            """)
-            print("Added audit_logs.current_hash")
 
         # Validate existing user roles.
         invalid_roles = cursor.execute("""

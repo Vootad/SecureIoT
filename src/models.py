@@ -141,9 +141,3 @@ class AuditLog(Base):
     event_type = Column(String, nullable=False, index=True)
     result = Column(String, nullable=False)
     reason = Column(String, nullable=True)
-
-    # Hash of the previous audit log entry.
-    previous_hash = Column(String(64), nullable=True)
-
-    # Hash of the current audit log entry.
-    current_hash = Column(String(64), nullable=True)

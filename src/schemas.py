@@ -77,5 +77,3 @@ class AdminAuditLogResponse(BaseModel):
     event_type: str
     result: str
     reason: str | None = None
-    previous_hash: str | None = None
-    current_hash: str | None = None
