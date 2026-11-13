@@ -1,6 +1,9 @@
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
 
 from database import engine, Base
 from routers.auth import router as auth_router
@@ -23,6 +26,39 @@ app.include_router(admin_locks_router)
 app.include_router(admin_permissions_router)
 app.include_router(admin_audit_router)
 app.include_router(user_locks_router)
+
+
+# Define the frontend directory.
+FRONTEND_DIR = Path(__file__).resolve().parent / "frontend"
+
+# Serve frontend CSS and JavaScript files.
+app.mount(
+    "/static",
+    StaticFiles(directory=FRONTEND_DIR),
+    name="static"
+)
+
+
+# Serve the login page at the root URL.
+@app.get("/")
+def serve_login_page():
+    return FileResponse(FRONTEND_DIR / "login.html")
+
+
+# Serve individual frontend pages.
+@app.get("/login")
+def serve_login():
+    return FileResponse(FRONTEND_DIR / "login.html")
+
+
+@app.get("/admin")
+def serve_admin():
+    return FileResponse(FRONTEND_DIR / "admin.html")
+
+
+@app.get("/user")
+def serve_user():
+    return FileResponse(FRONTEND_DIR / "user.html")
 
 
 # Exception handler

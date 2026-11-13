@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureIoT | Admin Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/admin.js" defer></script>
+</head>
+<body>
+    <header class="dashboard-header">
+        <div>
+            <h1>SecureIoT Admin</h1>
+            <p>Access Control Management</p>
+        </div>
+
+        <button id="logout-button" class="secondary-button">
+            Logout
+        </button>
+    </header>
+
+    <main class="dashboard-container">
+        <section class="dashboard-section">
+            <h2>User Management</h2>
+            <p class="section-description">
+                Create users and manage their account status.
+            </p>
+
+            <form id="create-user-form" class="inline-form">
+                <div class="form-group">
+                    <label for="new-username">Username</label>
+                    <input
+                        type="text"
+                        id="new-username"
+                        required
+                        maxlength="100"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="new-password">Password</label>
+                    <input
+                        type="password"
+                        id="new-password"
+                        required
+                    >
+                </div>
+
+                <button type="submit" id="create-user-button">
+                    Create User
+                </button>
+            </form>
+
+            <p id="user-message" class="status-message" role="status"></p>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Created At</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <tr>
+                            <td colspan="6">Loading users...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <button id="refresh-users-button" class="secondary-button">
+                Refresh Users
+            </button>
+        </section>
+
+        <section class="dashboard-section">
+            <h2>Lock Management</h2>
+            <p class="section-description">
+                Create locks and manage their active status.
+            </p>
+        
+            <form id="create-lock-form" class="inline-form">
+                <div class="form-group">
+                    <label for="new-lock-id">Lock Identifier</label>
+                    <input
+                        type="text"
+                        id="new-lock-id"
+                        required
+                        maxlength="100"
+                        placeholder="e.g. lock_002"
+                    >
+                </div>
+        
+                <div class="form-group">
+                    <label for="new-lock-password">Lock Password</label>
+                    <input
+                        type="password"
+                        id="new-lock-password"
+                        required
+                    >
+                </div>
+        
+                <button type="submit" id="create-lock-button">
+                    Create Lock
+                </button>
+            </form>
+        
+            <p id="lock-message" class="status-message" role="status"></p>
+        
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Database ID</th>
+                            <th>Lock Identifier</th>
+                            <th>Status</th>
+                            <th>Created At</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="locks-table-body">
+                        <tr>
+                            <td colspan="5">Loading locks...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        
+            <button id="refresh-locks-button" class="secondary-button">
+                Refresh Locks
+            </button>
+        </section>
+
+        <section class="dashboard-section">
+            <h2>Permission Management</h2>
+        
+            <p class="section-description">
+                Assign or revoke lock access for users.
+            </p>
+        
+            <form id="permission-form" class="inline-form">
+                <div class="form-group">
+                    <label for="permission-user">Select User</label>
+                    <select id="permission-user" required>
+                        <option value="">Loading users...</option>
+                    </select>
+                </div>
+        
+                <div class="form-group">
+                    <label for="permission-lock">Select Lock</label>
+                    <select id="permission-lock" required>
+                        <option value="">Loading locks...</option>
+                    </select>
+                </div>
+        
+                <button type="submit" id="grant-permission-button">
+                    Grant Access
+                </button>
+            </form>
+        
+            <p id="permission-message" class="status-message" role="status"></p>
+        
+            <h3 class="subsection-title">Current Permissions</h3>
+        
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Permission ID</th>
+                            <th>Lock ID</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+        
+                    <tbody id="permissions-table-body">
+                        <tr>
+                            <td colspan="3">Select a user to view permissions.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        
+            <button
+                type="button"
+                id="refresh-permissions-button"
+                class="secondary-button"
+            >
+                Refresh Permissions
+            </button>
+        </section>
+
+        <section class="dashboard-section">
+            <h2>Audit Logs</h2>
+        
+            <p class="section-description">
+                View security events recorded by the system.
+                Audit logs are read-only.
+            </p>
+        
+            <div class="audit-controls">
+                <button
+                    type="button"
+                    id="refresh-audit-button"
+                    class="secondary-button"
+                >
+                    Refresh Logs
+                </button>
+        
+                <span id="audit-page-info">Page 1</span>
+            </div>
+        
+            <p id="audit-message" class="status-message" role="status"></p>
+        
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Username</th>
+                            <th>IP Address</th>
+                            <th>Event Type</th>
+                            <th>Result</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+        
+                    <tbody id="audit-table-body">
+                        <tr>
+                            <td colspan="6">Loading audit logs...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        
+            <div class="pagination-controls">
+                <button
+                    type="button"
+                    id="previous-audit-button"
+                    class="secondary-button"
+                    disabled
+                >
+                    Previous
+                </button>
+        
+                <button
+                    type="button"
+                    id="next-audit-button"
+                    class="secondary-button"
+                    disabled
+                >
+                    Next
+                </button>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureIoT | User Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/user.js" defer></script>
+</head>
+
+<body>
+    <header class="dashboard-header">
+        <div>
+            <h1>SecureIoT</h1>
+            <p>User Dashboard - Access Control</p>
+        </div>
+
+        <button id="logout-button" class="secondary-button">
+            Logout
+        </button>
+    </header>
+
+    <main class="dashboard-container">
+
+        <section class="dashboard-section">
+            <div class="user-welcome">
+                <div>
+                    <h2>My Locks</h2>
+                    <p class="section-description">
+                        View your assigned locks and manage access.
+                    </p>
+                </div>
+
+                <button
+                    id="refresh-locks-button"
+                    class="secondary-button"
+                >
+                    Refresh
+                </button>
+            </div>
+
+            <p id="locks-message" class="status-message" role="status"></p>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Lock ID</th>
+                            <th>Status</th>
+                            <th>Lock Password</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="locks-table-body">
+                        <tr>
+                            <td colspan="4">Loading locks...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="dashboard-section">
+            <h2>Unlock Results</h2>
+
+            <p class="section-description">
+                Results of your latest unlock requests.
+            </p>
+
+            <div id="unlock-results" class="unlock-results">
+                No unlock requests yet.
+            </div>
+        </section>
+
+    </main>
+</body>
+</html>
