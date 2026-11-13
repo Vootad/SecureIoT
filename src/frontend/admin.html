@@ -20,8 +20,12 @@
     </header>
 
     <main class="dashboard-container">
-        <section class="dashboard-section">
-            <h2>User Management</h2>
+        <details class="dashboard-section" open>
+            <summary class="section-header">
+                <h2>User Management</h2>
+                <span class="section-arrow"></span>
+            </summary>
+
             <p class="section-description">
                 Create users and manage their account status.
             </p>
@@ -76,10 +80,14 @@
             <button id="refresh-users-button" class="secondary-button">
                 Refresh Users
             </button>
-        </section>
+        </details>
 
-        <section class="dashboard-section">
-            <h2>Lock Management</h2>
+        <details class="dashboard-section">
+            <summary class="section-header">
+                <h2>Lock Management</h2>
+                <span class="section-arrow"></span>
+            </summary>
+
             <p class="section-description">
                 Create locks and manage their active status.
             </p>
@@ -134,11 +142,14 @@
             <button id="refresh-locks-button" class="secondary-button">
                 Refresh Locks
             </button>
-        </section>
+        </details>
 
-        <section class="dashboard-section">
-            <h2>Permission Management</h2>
-        
+        <details class="dashboard-section">
+            <summary class="section-header">
+                <h2>Permission Management</h2>
+                <span class="section-arrow"></span>
+            </summary>
+
             <p class="section-description">
                 Assign or revoke lock access for users.
             </p>
@@ -192,11 +203,14 @@
             >
                 Refresh Permissions
             </button>
-        </section>
+        </details>
 
-        <section class="dashboard-section">
-            <h2>Audit Logs</h2>
-        
+        <details class="dashboard-section">
+            <summary class="section-header">
+                <h2>Audit Logs</h2>
+                <span class="section-arrow"></span>
+            </summary>
+
             <p class="section-description">
                 View security events recorded by the system.
                 Audit logs are read-only.
@@ -256,7 +270,7 @@
                     Next
                 </button>
             </div>
-        </section>
+        </details>
     </main>
 </body>
 </html>
